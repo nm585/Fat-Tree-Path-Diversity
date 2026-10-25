@@ -52,8 +52,9 @@ Run the tests:
 python -m unittest discover -s tests -v
 ```
 
-Main inputs are the switch port count `k`, failure percentage, number of trials, number of sampled host pairs, and random seed. The optional `--failure-mode exact` removes an exact rounded percentage of links; the default `independent` mode makes each link fail independently with the given probability.
+Input parameters: The generate command accepts --k, --failure-rate, --seed, and the optional --failure-mode. The experiment command accepts --k-values, --failure-rates, --trials, --pairs, --seed, and the optional --failure-mode. Failure rates are expressed as percentages from 0 to 100 (so --failure-rate 10 means 10%, not 0.10%).
 
+Failure modes: The default independent mode gives each physical link a 10% chance of failing when the rate is 10%; the number of failed links varies between runs. In exact mode, the program selects round(total_links × percentage / 100) links. For example, a k=4 network has 48 links, so --failure-rate 10 --failure-mode exact selects exactly 5 failed links. The JSON records which links failed; --plot currently draws the full original topology rather than highlighting failed links.
 ## Experimental Method
 
 We tested `k = 4, 8, 12` and failure probabilities of `0%, 1%, 5%, 10%, 15%, 20%`.
