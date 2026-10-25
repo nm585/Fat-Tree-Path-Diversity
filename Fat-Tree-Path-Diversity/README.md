@@ -1,5 +1,6 @@
 # Fat-Tree Path Diversity Under Link Failures
 
+**Homework 1 (ver. 2)** — Data Center and AI Networks (361.2.2460)
 
 ## Overview
 
@@ -11,14 +12,22 @@ The implementation uses Python, NetworkX, and Matplotlib. It models the network 
 
 ## Topology
 
-The generator follows the Fat-Tree architecture in Al-Fares et al. (2008). Every switch has `k` ports; `k` is even. The network consists of Core, Aggregation, and Edge switches, with hosts attached to Edge switches.
+The generator follows the three-tier Fat-Tree architecture in Al-Fares et al. (2008): Core, Aggregation, and Edge switches, with hosts connected to Edge switches. Let `k` be the **even number of ports per switch**, and `m = k/2`.
 
-| Property | Formula | `k=4` | `k=8` | `k=12` |
-|---|---:|---:|---:|---:|
-| Pods | `k` | 4 | 8 | 12 |
-| Hosts | `k³/4` | 16 | 128 | 432 |
-| Switches | `5k²/4` | 20 | 80 | 180 |
-| Physical links | `3k³/4` | 48 | 384 | 1,296 |
+| Property | General formula |
+|---|---:|
+| Pods | `k` |
+| Edge switches per Pod | `m` |
+| Aggregation switches per Pod | `m` |
+| Hosts per Edge switch | `m` |
+| Total hosts | `k³/4` |
+| Total Core switches | `k²/4` |
+| Total switches | `5k²/4` |
+| Total physical links | `3k³/4` |
+| Original six-hop ECMP routes between hosts in different Pods | `k²/4` |
+| Original four-hop link-disjoint routes between Edge switches in different Pods | `k/2` |
+
+For example, `k=4, 8, 12` gives **16, 128, 432 hosts** and **20, 80, 180 switches**, respectively. All formulas describe the intact topology **before failures**. The last two rows refer to a pair of endpoints in *different Pods*, not to network-wide totals.
 
 Each link has a nominal capacity of 1 Gbps in the graph metadata. IP addresses encode the Pod, switch, and host location, following the paper.
 
@@ -34,7 +43,7 @@ Requires Python 3.10 or later.
 pip install -r requirements.txt
 ```
 
-Generate a network and optionally mark failed links:
+Generate a network and export link-failure flags to JSON (the optional PNG shows the intact topology):
 
 ```bash
 python main.py generate --k 4 --failure-rate 10 --seed 2026 --plot
@@ -52,9 +61,10 @@ Run the tests:
 python -m unittest discover -s tests -v
 ```
 
-Input parameters: The generate command accepts --k, --failure-rate, --seed, and the optional --failure-mode. The experiment command accepts --k-values, --failure-rates, --trials, --pairs, --seed, and the optional --failure-mode. Failure rates are expressed as percentages from 0 to 100 (so --failure-rate 10 means 10%, not 0.10%).
+**Input parameters:** The `generate` command accepts `--k`, `--failure-rate`, `--seed`, and the optional `--failure-mode`. The `experiment` command accepts `--k-values`, `--failure-rates`, `--trials`, `--pairs`, `--seed`, and the optional `--failure-mode`. Failure rates are expressed as percentages from 0 to 100 (so `--failure-rate 10` means **10%**, not 0.10%).
 
-Failure modes: The default independent mode gives each physical link a 10% chance of failing when the rate is 10%; the number of failed links varies between runs. In exact mode, the program selects round(total_links × percentage / 100) links. For example, a k=4 network has 48 links, so --failure-rate 10 --failure-mode exact selects exactly 5 failed links. The JSON records which links failed; --plot currently draws the full original topology rather than highlighting failed links.
+**Failure modes:** The default `independent` mode gives *each physical link* a 10% chance of failing when the rate is 10%; the number of failed links varies between runs. In `exact` mode, the program selects `round(total_links × percentage / 100)` links. For example, a `k=4` network has 48 links, so `--failure-rate 10 --failure-mode exact` selects exactly 5 failed links. The JSON records which links failed; `--plot` currently draws the full original topology rather than highlighting failed links.
+
 ## Experimental Method
 
 We tested `k = 4, 8, 12` and failure probabilities of `0%, 1%, 5%, 10%, 15%, 20%`.
@@ -67,6 +77,18 @@ We calculated two metrics:
 2. **Independent paths:** the maximum number of surviving, mutually link-disjoint original four-link shortest routes **between the two Edge switches** hosting those servers. Without failures there are `k/2` routes.
 
 We use Edge-to-Edge endpoints for the second metric because each host has only one access link, which all its end-to-end routes share. For the independent metric, each Aggregation group contributes one route if at least one of its Core choices survives.
+
+**How the two metrics differ:** Both are computed from the *same* link-failure simulations; they are not separate experiments.
+
+| | ECMP paths | Independent paths |
+|---|---|---|
+| Endpoints | Host to Host | Edge switch to Edge switch |
+| Links per original shortest route | 6 (including host access links) | 4 (excluding host access links) |
+| Can counted routes share links? | Yes | No |
+| Intact network, `k=8` | 16 | 4 |
+| 20% failure probability, `k=8` (average) | 4.292 | 2.536 |
+
+Thus, **ECMP measures how many shortest routing alternatives remain**, while **independent paths measure how many non-overlapping alternatives remain within the switching fabric**. Neither metric directly measures throughput or the percentage of connected hosts.
 
 ## Results
 
@@ -94,7 +116,15 @@ This is the first metric divided by the healthy baseline `k/2`, allowing a compa
 
 **Example:** With `k=8`, the number of original shortest host-to-host routes decreases from **16.000** to **8.637** at 10% failure probability and **4.292** at 20%.
 
-**Meaning:** Each such route needs six working links, including both host access links. At 20% independent link-failure probability, the expected number of surviving routes is `16 × 0.8⁶ ≈ 4.19`, close to the simulation result.
+**Meaning:** These six-link host-to-host routes include both access links, so they can be disrupted by any failed link along the path.
+
+**Theory check (not a separate experiment):** If each link fails independently with probability `p` (expressed as a fraction), an original six-link route survives with probability `(1-p)⁶`. By linearity of expectation, the expected number of surviving ECMP routes is:
+
+```text
+E[ECMP paths] = (k² / 4) × (1-p)⁶
+```
+
+For `k=8` and `p=0.20`, the prediction is `16 × 0.8⁶ = 4.194`, versus `4.292` in the simulation. The small difference is consistent with finite random sampling. This formula applies to the **ECMP metric**, not directly to the independent-path metric.
 
 | `k` | Failure probability | Avg. independent Edge paths | Avg. host ECMP paths |
 |---:|---:|---:|---:|
@@ -106,13 +136,13 @@ The complete results, including intermediate failure rates, are available in [`r
 
 ## Conclusions and Limitations
 
-Fat-Tree provides alternative paths that survive some physical link failures. Increasing `k` increases the **absolute number** of available paths. However, the proportion of paths that survive does not necessarily increase by the same factor.
+Fat-Tree provides alternative paths that survive some physical link failures. For the tested values (`k=4, 8, 12`), increasing `k` increases the **absolute number** of surviving paths. However, at a 20% failure probability, `k=8` and `k=12` retain nearly the same proportion of independent paths (63.4% and 63.5%). The experiment therefore supports an increase in absolute redundancy, not a large improvement in relative survival rate over that part of the tested range.
 
 The experiment counts **original shortest paths only**, not longer fallback routes. A missing shortest route does not necessarily mean the hosts are disconnected. Failures are assumed independent, and the project does not simulate throughput, congestion, delay, or the routing algorithms in the paper.
 
 ## AI Usage
 
-**OpenAI ChatGPT was used to assist with implementing the Python code, generating the experimental graphs, and Layout this README.** 
+**OpenAI ChatGPT was used to assist with implementing the Python code, generating the experimental graphs, and drafting this README.** The numerical results in the graphs were produced by running the simulation code, not manually invented. The student is responsible for reviewing, understanding, and validating the submitted work.
 
 ## Reference
 
