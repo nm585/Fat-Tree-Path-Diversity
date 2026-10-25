@@ -1,7 +1,5 @@
 # Fat-Tree Path Diversity Under Link Failures
 
-**Homework 1 (ver. 2)** — Data Center and AI Networks (361.2.2460)
-
 ## Overview
 
 This project generates a three-tier Fat-Tree topology and investigates:
@@ -142,7 +140,7 @@ The experiment counts **original shortest paths only**, not longer fallback rout
 
 ## AI Usage
 
-**OpenAI ChatGPT was used to assist with implementing the Python code, generating the experimental graphs, and drafting this README.** The numerical results in the graphs were produced by running the simulation code, not manually invented. The student is responsible for reviewing, understanding, and validating the submitted work.
+**OpenAI ChatGPT was used to assist with implementing the Python code, and drafting this README.** 
 
 ## Reference
 
