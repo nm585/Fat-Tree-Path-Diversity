@@ -1,6 +1,5 @@
 # Fat-Tree Path Diversity Under Link Failures
 
-**Homework 1 (ver. 2)** — Data Center and AI Networks (361.2.2460)
 
 ## Overview
 
