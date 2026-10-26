@@ -1,5 +1,7 @@
 # Fat-Tree Path Diversity Under Link Failures
 
+**Homework 1 (ver. 2)** — Data Center and AI Networks (361.2.2460)
+
 ## Overview
 
 This project generates a three-tier Fat-Tree topology and investigates:
@@ -98,6 +100,43 @@ Thus, **ECMP measures how many shortest routing alternatives remain**, while **i
 
 **Meaning:** Larger switches provide more independent route choices in absolute numbers, even after failures.
 
+### Why independent-path survival approaches a limit
+
+The normalized independent-path results have a theoretical explanation under the **independent link-failure** model. Let `p` be the per-link failure probability, `s = 1-p` the survival probability, and `m = k/2`.
+
+For one Aggregation group to contribute an intact four-hop Edge-to-Edge route:
+
+1. Its two shared Edge–Aggregation links (at the source and destination) must survive, with probability `s²`.
+2. At least one of the `m` Core alternatives must have both Aggregation–Core links intact. Each alternative succeeds with probability `s²`; because these alternatives use different links, the probability at least one succeeds is `1-(1-s²)^m`.
+
+Therefore, the probability that one group supplies a surviving route is:
+
+$$
+P_{\mathrm{group}} = (1-p)^2 \left[1-\left(1-(1-p)^2\right)^{k/2}\right].
+$$
+
+Different Aggregation groups can each contribute **one** link-disjoint route. Hence the expected absolute count is `(k/2) × P_group`, and the **expected fraction of original independent paths remaining is `P_group`**.
+
+At **20% per-link failure probability**, this prediction compares with our measured simulation as follows:
+
+| `k` | Theory: independent paths remaining | Simulation: independent paths remaining |
+|---:|---:|---:|
+| 4 | 55.71% | 57.75% |
+| 8 | 62.93% | 63.40% |
+| 12 | 63.86% | 63.47% |
+
+The simulation varies because each configuration uses a finite number of random failure realizations. The formula also predicts the following values **beyond our tested `k` values** (these are calculations, **not extra simulations**):
+
+| `k` | Theoretical fraction at 20% failures |
+|---:|---:|
+| 16 | 63.98% |
+| 20 | 64.00% |
+| 24 | 64.00% |
+
+As `k` increases (for `0 < p < 1`), the probability that every Core alternative fails tends to zero, so the surviving fraction approaches `(1-p)²`, or **64% for `p=0.20`**. The two shared Edge–Aggregation links in each group remain a bottleneck even when there are many Core choices. Meanwhile, the **absolute number** of surviving independent paths can still grow with `k`.
+
+**Interpretation limits:** The 64% limit concerns only our metric: the fraction of *original shortest, four-hop, link-disjoint Edge-to-Edge paths* remaining under independent physical-link failures. It is **not** a limit on host-to-host connectivity, longer backup routes, or actual throughput. It does not apply unchanged to the `exact` failure mode or correlated failures.
+
 ### 2. Independent paths remaining (percentage)
 
 ![Independent paths percentage](results/edge_disjoint_normalized.png)
@@ -140,7 +179,7 @@ The experiment counts **original shortest paths only**, not longer fallback rout
 
 ## AI Usage
 
-**OpenAI ChatGPT was used to assist with implementing the Python code, and drafting this README.** 
+**OpenAI ChatGPT was used to assist with implementing the Python code,  and drafting this README.** 
 
 ## Reference
 
