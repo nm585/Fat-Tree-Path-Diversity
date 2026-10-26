@@ -172,7 +172,9 @@ The complete results, including intermediate failure rates, are available in [`r
 
 ## Conclusions and Limitations
 
-Fat-Tree provides alternative paths that survive some physical link failures. For the tested values (`k=4, 8, 12`), increasing `k` increases the **absolute number** of surviving paths. However, at a 20% failure probability, `k=8` and `k=12` retain nearly the same proportion of independent paths (63.4% and 63.5%). The experiment therefore supports an increase in absolute redundancy, not a large improvement in relative survival rate over that part of the tested range.
+Increasing the Fat-Tree size improves the absolute number of surviving independent paths. However, for any fixed independent link-failure probability, the expected surviving fraction approaches a theoretical limit of \((1-p)^2\). The simulations for \(k=4,8,12\) are consistent with this behavior.
+
+This suggests that increasing network size provides greater absolute path redundancy, while the relative improvement in path survival gradually diminishes.
 
 The experiment counts **original shortest paths only**, not longer fallback routes. A missing shortest route does not necessarily mean the hosts are disconnected. Failures are assumed independent, and the project does not simulate throughput, congestion, delay, or the routing algorithms in the paper.
 
